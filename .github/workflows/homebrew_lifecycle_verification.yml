@@ -2,7 +2,7 @@ name: Verify Homebrew upgrade, first launch and running-app uninstall
 
 on:
   push:
-    branches: [homebrew-lifecycle-verification]
+    branches: [homebrew-arm-verification]
 
 permissions:
   contents: read
@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner: [macos-15, macos-15-intel]
+        runner: [macos-latest]
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 7
     env:
