@@ -14,5 +14,6 @@ cask "oneclient" do
 
   app "OneClient.app"
 
-  uninstall quit: "org.polyfrost.OneClient"
+  uninstall quit:   "org.polyfrost.OneClient",
+            signal: [["TERM", "org.polyfrost.OneClient"]]
 end
