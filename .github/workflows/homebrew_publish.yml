@@ -47,23 +47,33 @@ jobs:
 
           arm_sha=$(digest aarch64)
           intel_sha=$(digest x64)
-          sed -i -E \
-            -e "s/^(  version )\"[^\"]+\"$/\1\"$version\"/" \
-            -e "s/^(  sha256 arm: +)\"[a-f0-9]{64}\",$/\1\"$arm_sha\",/" \
-            -e "s/^( +intel: +)\"[a-f0-9]{64}\"$/\1\"$intel_sha\"/" \
-            Casks/oneclient.rb
+          cask=Casks/oneclient.rb
 
-          grep -Fxq "  version \"$version\"" Casks/oneclient.rb
-          grep -Fxq "  sha256 arm:   \"$arm_sha\"," Casks/oneclient.rb
-          grep -Fxq "         intel: \"$intel_sha\"" Casks/oneclient.rb
+          checksums_match() {
+            grep -Fxq "  sha256 arm:   \"$arm_sha\"," "$cask" &&
+            grep -Fxq "         intel: \"$intel_sha\"" "$cask"
+          }
 
-          if git diff --quiet -- Casks/oneclient.rb; then
+          if grep -Fxq "  version \"$version\"" "$cask"; then
+            if ! checksums_match; then
+              echo "::error::Published DMG checksums changed for oneclient-$version. Verify the assets and update the cask through a reviewed pull request."
+              exit 1
+            fi
             echo "Homebrew cask already matches oneclient-$version."
             exit 0
           fi
 
+          sed -i -E \
+            -e "s/^(  version )\"[^\"]+\"$/\1\"$version\"/" \
+            -e "s/^(  sha256 arm: +)\"[a-f0-9]{64}\",$/\1\"$arm_sha\",/" \
+            -e "s/^( +intel: +)\"[a-f0-9]{64}\"$/\1\"$intel_sha\"/" \
+            "$cask"
+
+          grep -Fxq "  version \"$version\"" "$cask"
+          checksums_match
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Casks/oneclient.rb
+          git add "$cask"
           git commit -m "oneclient: update Homebrew cask to $version"
           git push
