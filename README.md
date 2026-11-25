@@ -18,12 +18,26 @@ as well as our [GitHub releases](https://github.com/Polyfrost/OneLauncher/releas
 |------------------|-------------------------------|---------------------------------------------------------|
 | Installer 🔄      | DMG 🔄                        | AppImage 🔄                                             |
 |                  | App Bundle 🔄                 | DEB                                                     |
-|                  |                               | RPM                                                     |
+|                  | Homebrew 🔄                   | RPM                                                     |
 |                  |                               | *[RPM (COPR)](https://copr.fedorainfracloud.org/coprs/polyfrost/OneClient/) 🔄 |
 |                  |                               | [AUR](https://aur.archlinux.org/packages/oneclient-bin)|
 |                  |                               | Flatpak|
 
 > 🔄 = Has support for autoupdating built-in
+
+### Homebrew Installation
+
+```sh
+brew tap polyfrost/oneclient https://github.com/Polyfrost/OneLauncher.git
+brew install --cask polyfrost/oneclient/oneclient
+```
+
+OneClient can update itself. To upgrade it through Homebrew, run:
+
+```sh
+brew update
+brew upgrade --cask --greedy polyfrost/oneclient/oneclient
+```
 
 <details>
 
