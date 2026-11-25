@@ -3,8 +3,6 @@ name: Update Homebrew Cask
 on:
   release:
     types: [published]
-  schedule:
-    - cron: "23 */6 * * *"
   workflow_dispatch:
 
 permissions:
@@ -16,7 +14,10 @@ concurrency:
 
 jobs:
   update:
-    if: github.repository == 'Polyfrost/OneLauncher'
+    if: >-
+      github.repository == 'Polyfrost/OneLauncher' &&
+      (github.event_name != 'release' ||
+       (!github.event.release.prerelease && startsWith(github.event.release.tag_name, 'oneclient-')))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -45,6 +46,10 @@ jobs:
             -e "s/^(  sha256 arm: +)\"[a-f0-9]{64}\",$/\1\"$arm_sha\",/" \
             -e "s/^( +intel: +)\"[a-f0-9]{64}\"$/\1\"$intel_sha\"/" \
             Casks/oneclient.rb
+
+          grep -Fxq "  version \"$version\"" Casks/oneclient.rb
+          grep -Fxq "  sha256 arm:   \"$arm_sha\"," Casks/oneclient.rb
+          grep -Fxq "         intel: \"$intel_sha\"" Casks/oneclient.rb
 
           if git diff --quiet -- Casks/oneclient.rb; then
             exit 0

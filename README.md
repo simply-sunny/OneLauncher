@@ -25,20 +25,6 @@ as well as our [GitHub releases](https://github.com/Polyfrost/OneLauncher/releas
 
 > 🔄 = Has support for autoupdating built-in
 
-### Homebrew Installation
-
-```sh
-brew tap polyfrost/oneclient https://github.com/Polyfrost/OneLauncher.git
-brew install --cask polyfrost/oneclient/oneclient
-```
-
-OneClient can update itself. To upgrade it through Homebrew, run:
-
-```sh
-brew update
-brew upgrade --cask --greedy polyfrost/oneclient/oneclient
-```
-
 <details>
 
 <summary><h3>Flatpak Installation</h3></summary>
