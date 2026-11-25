@@ -1,0 +1,90 @@
+name: Verify Homebrew upgrade, first launch and running-app uninstall
+
+on:
+  push:
+    branches: [homebrew-lifecycle-verification]
+
+permissions:
+  contents: read
+
+jobs:
+  lifecycle:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, macos-15-intel]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 7
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      APP: /Applications/OneClient.app
+      CASK: polyfrost/oneclient/oneclient
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          persist-credentials: false
+
+      - name: Install and upgrade OneClient in Applications
+        shell: bash
+        run: |
+          brew tap polyfrost/oneclient "$GITHUB_WORKSPACE"
+          tap=$(brew --repository polyfrost/oneclient)
+          sed -i '' \
+            -e 's/version "2\.12\.1"/version "2.12.0"/' \
+            -e 's/246cecbb8aff56a722c5b1432164fa150dd27d6ed32425507d483931633212bb/762428c5ade54074deb54ec7dcbe82f28a90356acf67a86d204183a7f5eeb097/' \
+            -e 's/c5f72d26cb497d79c1323aa3cc32780dd695fd8fc8e633fc2c259654b7ec782f/2239c0d6bd3501cc3fceec758626fa5354eba4a51f4d6e078ab2723a0b58d043/' \
+            "$tap/Casks/oneclient.rb"
+          version() {
+            /usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$APP/Contents/Info.plist"
+          }
+          brew install --cask --require-sha "$CASK"
+          test "$(version)" = 2.12.0
+          git -C "$tap" restore Casks/oneclient.rb
+          brew upgrade --cask "$CASK"
+          test "$(version)" = 2.12.1
+          codesign --verify --deep --strict "$APP"
+          echo "PASS Upgraded to signed OneClient 2.12.1."
+
+      - name: Confirm first launch and verify the OneClient window
+        shell: bash
+        run: |
+          swiftc .github/scripts/verify-homebrew-window.swift -o "$RUNNER_TEMP/check-window"
+          open -n "$APP" > "$RUNNER_TEMP/open-oneclient.log" 2>&1 &
+          opener=$!
+          trap 'kill "$opener" 2>/dev/null || true' EXIT
+          executable=$(/usr/libexec/PlistBuddy -c 'Print CFBundleExecutable' "$APP/Contents/Info.plist")
+          confirmed=false
+          pid=
+          for attempt in {1..35}; do
+            if pid=$(pgrep -nx "$executable") && "$RUNNER_TEMP/check-window" window "$pid"; then
+              echo "ONECLIENT_PID=$pid" >> "$GITHUB_ENV"
+              echo "PASS OneClient displayed its own window."
+              exit 0
+            fi
+            if [[ "$confirmed" == false ]]; then
+              image="$RUNNER_TEMP/first-launch.png"
+              if screencapture -x "$image" && "$RUNNER_TEMP/check-window" confirm "$image"; then
+                confirmed=true
+              fi
+            fi
+            sleep 2
+          done
+          cat "$RUNNER_TEMP/open-oneclient.log"
+          echo "::error::OneClient did not display its own window (clicked confirmation: $confirmed)."
+          exit 1
+
+      - name: Uninstall while OneClient is running
+        shell: bash
+        run: |
+          kill -0 "$ONECLIENT_PID"
+          brew uninstall --cask "$CASK"
+          test ! -e "$APP"
+          for attempt in {1..15}; do
+            if ! kill -0 "$ONECLIENT_PID" 2>/dev/null; then
+              echo "PASS Homebrew stopped the running OneClient process and removed the app."
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::Homebrew removed the app but its process is still running."
+          exit 1
