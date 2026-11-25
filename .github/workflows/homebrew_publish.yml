@@ -2,11 +2,8 @@ name: Update Homebrew Cask
 
 on:
   release:
-    types: [published]
+    types: [published, edited]
   workflow_dispatch:
-
-permissions:
-  contents: write
 
 concurrency:
   group: homebrew-cask-update
@@ -19,6 +16,8 @@ jobs:
       (github.event_name != 'release' ||
        (!github.event.release.prerelease && startsWith(github.event.release.tag_name, 'oneclient-')))
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
@@ -27,16 +26,23 @@ jobs:
       - name: Update version and checksums from the latest stable release
         env:
           GH_TOKEN: ${{ github.token }}
+          EVENT_TAG: ${{ github.event.release.tag_name }}
         shell: bash
         run: |
           release=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest")
           version=$(jq -er '.tag_name | capture("^oneclient-(?<version>[0-9]+\\.[0-9]+\\.[0-9]+)$").version' <<< "$release")
+          if [[ -n "$EVENT_TAG" && "$EVENT_TAG" != "oneclient-$version" ]]; then
+            echo "$EVENT_TAG is not marked Latest. Syncing the cask with oneclient-$version."
+          fi
 
           digest() {
             jq -er --arg name "OneClient_${version}_$1.dmg" '
               .assets[] | select(.name == $name and .state == "uploaded")
               | .digest | strings | capture("^sha256:(?<hash>[a-f0-9]{64})$").hash
-            ' <<< "$release"
+            ' <<< "$release" || {
+              echo "::error::OneClient_${version}_$1.dmg is missing an uploaded SHA-256 digest." >&2
+              return 1
+            }
           }
 
           arm_sha=$(digest aarch64)
@@ -52,6 +58,7 @@ jobs:
           grep -Fxq "         intel: \"$intel_sha\"" Casks/oneclient.rb
 
           if git diff --quiet -- Casks/oneclient.rb; then
+            echo "Homebrew cask already matches oneclient-$version."
             exit 0
           fi
 

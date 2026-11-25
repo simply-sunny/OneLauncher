@@ -18,7 +18,7 @@ as well as our [GitHub releases](https://github.com/Polyfrost/OneLauncher/releas
 |------------------|-------------------------------|---------------------------------------------------------|
 | Installer 🔄      | DMG 🔄                        | AppImage 🔄                                             |
 |                  | App Bundle 🔄                 | DEB                                                     |
-|                  | Homebrew 🔄                   | RPM                                                     |
+|                  | [Homebrew](distribution/homebrew.md) 🔄 | RPM                                           |
 |                  |                               | *[RPM (COPR)](https://copr.fedorainfracloud.org/coprs/polyfrost/OneClient/) 🔄 |
 |                  |                               | [AUR](https://aur.archlinux.org/packages/oneclient-bin)|
 |                  |                               | Flatpak|
