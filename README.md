@@ -18,12 +18,35 @@ as well as our [GitHub releases](https://github.com/Polyfrost/OneLauncher/releas
 |------------------|-------------------------------|---------------------------------------------------------|
 | Installer 🔄      | DMG 🔄                        | AppImage 🔄                                             |
 |                  | App Bundle 🔄                 | DEB                                                     |
-|                  | [Homebrew](distribution/homebrew.md) 🔄 | RPM                                           |
+|                  | [Homebrew](#homebrew-installation) 🔄 | RPM                                           |
 |                  |                               | *[RPM (COPR)](https://copr.fedorainfracloud.org/coprs/polyfrost/OneClient/) 🔄 |
 |                  |                               | [AUR](https://aur.archlinux.org/packages/oneclient-bin)|
 |                  |                               | Flatpak|
 
 > 🔄 = Has support for autoupdating built-in
+
+<a id="homebrew-installation"></a>
+<details>
+
+<summary><h3>Homebrew Installation</h3></summary>
+
+If you installed OneClient from a DMG, quit it and move `OneClient.app` out of `/Applications` before installing the cask.
+
+```sh
+brew tap polyfrost/oneclient https://github.com/Polyfrost/OneLauncher.git
+brew install --cask polyfrost/oneclient/oneclient
+```
+
+The cask installs the signed OneClient app for Apple Silicon or Intel. OneClient can update itself. To update it through Homebrew, run:
+
+```sh
+brew update
+brew upgrade --cask polyfrost/oneclient/oneclient
+```
+
+Quit OneClient before uninstalling it with Homebrew.
+
+</details>
 
 <details>
 
