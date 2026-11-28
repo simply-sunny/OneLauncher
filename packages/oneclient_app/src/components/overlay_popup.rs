@@ -165,6 +165,9 @@ impl Component for OverlayPopup {
             .position(Position::new_global().top(0.).left(0.))
             .width(Size::window_percent(100.))
             .height(Size::window_percent(100.))
+            // Lists inside still scroll, but the page behind must not: on the versions
+            // page the wheel would move Home's stack and unmount the popup
+            .on_wheel(|e: Event<WheelEventData>| e.stop_propagation())
             .child(
                 rect()
                     .position(Position::new_global().top(0.).left(0.))
@@ -199,5 +202,58 @@ impl Component for OverlayPopup {
                     })
                     .children(self.children.clone()),
             )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use freya_testing::prelude::*;
+
+    use super::*;
+
+    /// Counts the wheel events that reach the page and the popup's panel as "page/panel"
+    fn page(popup: bool) -> impl IntoElement {
+        let mut page_wheels = use_state(|| 0);
+        let mut panel_wheels = use_state(|| 0);
+        rect()
+            .width(Size::fill())
+            .height(Size::fill())
+            .on_wheel(move |_| *page_wheels.write() += 1)
+            .child(label().text(format!("{}/{}", page_wheels.read(), panel_wheels.read())))
+            .maybe(popup, |page| {
+                page.child(
+                    OverlayPopup::new()
+                        .position(Position::new_global().top(100.).left(100.))
+                        .child(
+                            rect()
+                                .width(Size::px(200.))
+                                .height(Size::px(200.))
+                                .on_wheel(move |_| *panel_wheels.write() += 1),
+                        ),
+                )
+            })
+    }
+
+    fn wheel_at(app: fn() -> Element, at: (f64, f64)) -> Option<String> {
+        let (mut test, _) = TestingRunner::new(app, Size2D::new(600., 600.), |_| {}, 1.);
+        test.sync_and_update();
+        test.scroll(at, (0., -50.));
+        test.sync_and_update();
+        test.find(|_, element| Label::try_downcast(element).map(|label| label.text.to_string()))
+    }
+
+    #[test]
+    fn the_wheel_reaches_the_page_without_a_popup() {
+        let app = || page(false).into_element();
+        assert_eq!(wheel_at(app, (200., 200.)).as_deref(), Some("1/0"));
+    }
+
+    #[test]
+    fn a_popup_keeps_the_wheel_from_the_page_behind() {
+        let app = || page(true).into_element();
+        // On the panel, where a list inside the popup still scrolls
+        assert_eq!(wheel_at(app, (200., 200.)).as_deref(), Some("0/1"));
+        // On the scrim around it
+        assert_eq!(wheel_at(app, (500., 500.)).as_deref(), Some("0/0"));
     }
 }
